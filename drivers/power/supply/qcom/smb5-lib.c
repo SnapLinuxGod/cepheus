@@ -50,6 +50,9 @@
 bool skip_thermal = false;
 module_param(skip_thermal, bool, 0644);
 
+bool usb_fc = false;
+module_param(usb_fc, bool, 0644);
+
 static bool off_charge_flag;
 
 bool smblib_rsbux_low(struct smb_charger *chg, int r_thr);
@@ -1420,6 +1423,9 @@ int smblib_set_icl_current(struct smb_charger *chg, int icl_ua)
 		&& (chg->typec_legacy
 		|| chg->typec_mode == POWER_SUPPLY_TYPEC_SOURCE_DEFAULT
 		|| chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB)) {
+		/* Force 900mA */
+		if (usb_fc)
+			icl_ua = USBIN_900MA;
 		rc = set_sdp_current(chg, icl_ua);
 		if (rc < 0) {
 			smblib_err(chg, "Couldn't set SDP ICL rc=%d\n", rc);
