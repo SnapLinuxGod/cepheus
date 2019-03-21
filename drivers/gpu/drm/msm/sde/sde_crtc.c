@@ -26,6 +26,8 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_flip_work.h>
 #include <linux/clk/qcom.h>
+#include <linux/cpu_input_boost.h>
+#include <linux/devfreq_boost.h>
 
 #include "sde_kms.h"
 #include "sde_hw_lm.h"
@@ -149,12 +151,22 @@ static inline int _sde_crtc_power_enable(struct sde_crtc *sde_crtc, bool enable)
 static void sde_crtc_calc_fps(struct sde_crtc *sde_crtc)
 {
 	ktime_t current_time_us;
-	u64 fps, diff_us;
+	u64 fps, diff_us, gen_us;
 
 	current_time_us = ktime_get();
 	diff_us = (u64)ktime_us_delta(current_time_us,
 			sde_crtc->fps_info.last_sampled_time_us);
 	sde_crtc->fps_info.frame_count++;
+
+	gen_us = (u64)ktime_us_delta(current_time_us,
+			sde_crtc->fps_info.last_frame_time_us);
+	sde_crtc->fps_info.last_frame_time_us = current_time_us;
+
+	/* Boost when it took a frame longer than 0.06s to generate */
+	if (gen_us > 60000 && gen_us < 200000) {
+		cpu_input_boost_kick();
+		devfreq_boost_kick(DEVFREQ_MSM_CPUBW);
+	}
 
 	if (diff_us >= DEFAULT_FPS_PERIOD_1_SEC) {
 

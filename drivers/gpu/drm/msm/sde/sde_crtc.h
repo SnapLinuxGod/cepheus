@@ -161,6 +161,7 @@ struct sde_crtc_fps_info {
 	u32 fps_periodic_duration;
 	ktime_t *time_buf;
 	u32 next_time_index;
+	ktime_t last_frame_time_us;
 };
 
 /*
